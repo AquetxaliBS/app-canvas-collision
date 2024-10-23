@@ -49,6 +49,13 @@ class Circle {
         if (this.posY + this.radius > window_height || this.posY - this.radius < 0) {
             this.dy = -this.dy;
         }
+        if(this.flashFrames>0){
+            this.flashFrames--;
+            if(this.flashFrames===0)
+            {
+                this.color=this.originalColor;
+            }
+        }
     }
 
     // Método para detectar colisiones con otro círculo
@@ -59,7 +66,7 @@ class Circle {
         return distance < this.radius + otherCircle.radius;
     }
 
-    // Cambiar el color del círculo
+    /*// Cambiar el color del círculo
     changeColor(color) {
         this.color = color;
     }
@@ -67,6 +74,13 @@ class Circle {
     // Restaurar el color original
     restoreColor() {
         this.color = this.originalColor;
+    }*/
+
+    handleCollision(otherCircle){
+        this.dx= -this.dx;            
+        this.dy= -this.dy;
+        this.color= "#0000FF";
+        this.flashFrames= 5;
     }
 }
 
@@ -86,27 +100,30 @@ function generateCircles(n) {
     }
 }
 
+//Funcion para detectar colisiones entre circulos
+function detectCollisions(){
+    circles.forEach(Circle=>{ circles.isInCollision=false;});
+    for(let i=0; i<circles.length; i++){
+        for(let j=i+1; j<circles.length; j++){
+            if(circles[i].isCollidingWith(circles[j])){
+                circles[i].handleCollision();
+                circles[j].handleCollision();
+                circles[i].isInCollision=true;
+                circles[j].isInCollision=true;
+            }
+        }
+    }
+}
+
 // Función para animar los círculos
 function animate() {
     ctx.clearRect(0, 0, window_width, window_height); // Limpiar el canvas
 
     // Verificar colisiones y cambiar color si es necesario
-    circles.forEach((circle, index) => {
-        let isColliding = false;
-        for (let i = 0; i < circles.length; i++) {
-            if (i !== index && circle.isCollidingWith(circles[i])) {
-                isColliding = true;
-                break;
-            }
-        }
-        if (isColliding) {
-            circle.changeColor("blue");
-        } else {
-            circle.restoreColor();
-        }
-        circle.update(ctx);
+    circles.forEach(circle => {
+        circle.update(ctx); 
     });
-
+    detectCollisions();
     requestAnimationFrame(animate); // Repetir la animación
 }
 
