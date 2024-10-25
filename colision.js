@@ -20,6 +20,7 @@ class Circle {
         this.speed = speed;
         this.dx = 1 * this.speed;
         this.dy = 1 * this.speed;
+        this.flashFrames = 0; // Inicializar flashFrames
     }
 
     draw(context) {
@@ -49,11 +50,10 @@ class Circle {
         if (this.posY + this.radius > window_height || this.posY - this.radius < 0) {
             this.dy = -this.dy;
         }
-        if(this.flashFrames>0){
+        if (this.flashFrames > 0) {
             this.flashFrames--;
-            if(this.flashFrames===0)
-            {
-                this.color=this.originalColor;
+            if (this.flashFrames === 0) {
+                this.color = this.originalColor;
             }
         }
     }
@@ -66,21 +66,19 @@ class Circle {
         return distance < this.radius + otherCircle.radius;
     }
 
-    /*// Cambiar el color del círculo
-    changeColor(color) {
-        this.color = color;
+    handleCollision() {
+        this.dx = -this.dx;            
+        this.dy = -this.dy;
+        this.color = "#0000FF";
+        this.flashFrames = 5;
     }
 
-    // Restaurar el color original
-    restoreColor() {
-        this.color = this.originalColor;
-    }*/
-
-    handleCollision(otherCircle){
-        this.dx= -this.dx;            
-        this.dy= -this.dy;
-        this.color= "#0000FF";
-        this.flashFrames= 5;
+    // Método para detectar si el mouse está dentro del círculo
+    isMouseInside(mouseX, mouseY) {
+        const distX = mouseX - this.posX;
+        const distY = mouseY - this.posY;
+        const distance = Math.sqrt(distX * distX + distY * distY);
+        return distance < this.radius;
     }
 }
 
@@ -94,38 +92,48 @@ function generateCircles(n) {
         let x = Math.random() * (window_width - radius * 2) + radius;
         let y = Math.random() * (window_height - radius * 2) + radius;
         let color = `#${Math.floor(Math.random()*16777215).toString(16)}`; // Color aleatorio
-        let speed = Math.random() * 1 + 1; // Velocidad entre 1 y 5
+        let speed = Math.random() * 2 + 1; // Velocidad entre 1 y 3
         let text = `C${i + 1}`; // Etiqueta del círculo
         circles.push(new Circle(x, y, radius, color, text, speed));
     }
 }
 
-//Funcion para detectar colisiones entre circulos
-function detectCollisions(){
-    circles.forEach(Circle=>{ circles.isInCollision=false;});
-    for(let i=0; i<circles.length; i++){
-        for(let j=i+1; j<circles.length; j++){
-            if(circles[i].isCollidingWith(circles[j])){
+// Función para detectar colisiones entre círculos
+function detectCollisions() {
+    for (let i = 0; i < circles.length; i++) {
+        for (let j = i + 1; j < circles.length; j++) {
+            if (circles[i].isCollidingWith(circles[j])) {
                 circles[i].handleCollision();
                 circles[j].handleCollision();
-                circles[i].isInCollision=true;
-                circles[j].isInCollision=true;
             }
         }
     }
+}
+
+// Función para eliminar un círculo en el clic del mouse
+function removeCircle(mouseX, mouseY) {
+    circles = circles.filter(circle => !circle.isMouseInside(mouseX, mouseY));
 }
 
 // Función para animar los círculos
 function animate() {
     ctx.clearRect(0, 0, window_width, window_height); // Limpiar el canvas
 
-    // Verificar colisiones y cambiar color si es necesario
+    // Verificar colisiones y actualizar círculos
     circles.forEach(circle => {
-        circle.update(ctx); 
+        circle.update(ctx);
     });
     detectCollisions();
     requestAnimationFrame(animate); // Repetir la animación
 }
+
+// Manejar clic del mouse
+canvas.addEventListener('click', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left; // Obtener coordenada X relativa al canvas
+    const mouseY = event.clientY - rect.top;  // Obtener coordenada Y relativa al canvas
+    removeCircle(mouseX, mouseY);
+});
 
 // Generar N círculos y comenzar la animación
 generateCircles(10); // Puedes cambiar el número de círculos aquí
