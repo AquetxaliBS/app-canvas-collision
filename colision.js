@@ -10,17 +10,17 @@ canvas.style.background = "#ff8";
 
 // Clase Circle con propiedades y métodos
 class Circle {
-    constructor(x, y, radius, color, text, speed) {
+    constructor(x, radius, color, text, speed) {
         this.posX = x;
-        this.posY = y;
+        this.posY = window_height + radius; // Comienza justo debajo del margen inferior
         this.radius = radius;
         this.color = color;
         this.originalColor = color; // Guardar el color original
         this.text = text;
-        this.speed = speed;
-        this.dx = 1 * this.speed;
-        this.dy = 1 * this.speed;
+        this.speed = speed; // Velocidad hacia arriba
+        this.dy = -this.speed; // Solo se mueve hacia arriba
         this.flashFrames = 0; // Inicializar flashFrames
+        this.dx = Math.random() < 0.5 ? speed : -speed; // Movimiento horizontal aleatorio
     }
 
     draw(context) {
@@ -38,18 +38,22 @@ class Circle {
 
     update(context) {
         this.draw(context);
+        // Actualizar la posición Y
+        this.posY += this.dy;
         // Actualizar la posición X
         this.posX += this.dx;
-        // Cambiar la dirección si el círculo llega al borde del canvas en X
+
+        // Reiniciar el círculo al fondo si sale de la parte superior del canvas
+        if (this.posY + this.radius < 0) {
+            this.posY = window_height + this.radius; // Reinicia en la parte inferior
+            this.posX = Math.random() * (window_width - this.radius * 2) + this.radius; // Nueva posición X
+        }
+
+        // Cambiar dirección si el círculo llega al borde del canvas en X
         if (this.posX + this.radius > window_width || this.posX - this.radius < 0) {
             this.dx = -this.dx;
         }
-        // Actualizar la posición Y
-        this.posY += this.dy;
-        // Cambiar la dirección si el círculo llega al borde del canvas en Y
-        if (this.posY + this.radius > window_height || this.posY - this.radius < 0) {
-            this.dy = -this.dy;
-        }
+
         if (this.flashFrames > 0) {
             this.flashFrames--;
             if (this.flashFrames === 0) {
@@ -58,7 +62,6 @@ class Circle {
         }
     }
 
-    // Método para detectar colisiones con otro círculo
     isCollidingWith(otherCircle) {
         const distX = this.posX - otherCircle.posX;
         const distY = this.posY - otherCircle.posY;
@@ -66,14 +69,19 @@ class Circle {
         return distance < this.radius + otherCircle.radius;
     }
 
-    handleCollision() {
-        this.dx = -this.dx;            
-        this.dy = -this.dy;
-        this.color = "#0000FF";
-        this.flashFrames = 5;
+    handleCollision(otherCircle) {
+        // Intercambiar velocidades
+        const tempDX = this.dx;
+        const tempDY = this.dy;
+        this.dx = otherCircle.dx;
+        this.dy = otherCircle.dy;
+        otherCircle.dx = tempDX;
+        otherCircle.dy = tempDY;
+
+        this.color = "#0000FF"; // Cambiar a azul al colisionar
+        this.flashFrames = 5; // Parpadeo
     }
 
-    // Método para detectar si el mouse está dentro del círculo
     isMouseInside(mouseX, mouseY) {
         const distX = mouseX - this.posX;
         const distY = mouseY - this.posY;
@@ -89,12 +97,11 @@ let circles = [];
 function generateCircles(n) {
     for (let i = 0; i < n; i++) {
         let radius = Math.random() * 30 + 20; // Radio entre 20 y 50
-        let x = Math.random() * (window_width - radius * 2) + radius;
-        let y = Math.random() * (window_height - radius * 2) + radius;
-        let color = `#${Math.floor(Math.random()*16777215).toString(16)}`; // Color aleatorio
-        let speed = Math.random() * 2 + 1; // Velocidad entre 1 y 3
+        let x = Math.random() * (window_width - radius * 2) + radius; // Nueva posición X
+        let color = `#${Math.floor(Math.random() * 16777215).toString(16)}`; // Color aleatorio
+        let speed = Math.random() * 1 + 1; // Velocidad entre 1 y 3
         let text = `C${i + 1}`; // Etiqueta del círculo
-        circles.push(new Circle(x, y, radius, color, text, speed));
+        circles.push(new Circle(x, radius, color, text, speed));
     }
 }
 
@@ -103,8 +110,7 @@ function detectCollisions() {
     for (let i = 0; i < circles.length; i++) {
         for (let j = i + 1; j < circles.length; j++) {
             if (circles[i].isCollidingWith(circles[j])) {
-                circles[i].handleCollision();
-                circles[j].handleCollision();
+                circles[i].handleCollision(circles[j]);
             }
         }
     }
